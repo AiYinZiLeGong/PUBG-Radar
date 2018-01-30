@@ -1,0 +1,39 @@
+<configuration>
+
+    <appender name="stdout_method" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>
+                %d{HH:mm:ss} [%thread] %-5level %logger{36} %n \t %M - %msg%n
+            </pattern>
+        </encoder>
+    </appender>
+
+    <appender name="stdout_qualified" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>
+                %d{HH:mm:ss} [%thread] %-5level %logger{36} %n \t - %msg%n
+            </pattern>
+        </encoder>
+    </appender>
+
+    <appender name="stdout_simple" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>
+                [%d{HH:mm:ss.SSS}] &lt;%logger{0}@%thread&gt; - %msg%n
+            </pattern>
+        </encoder>
+    </appender>
+
+    <appender name="stdout_simple_nothread" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>
+                [%d{HH:mm:ss.SSS}] &lt;%logger{0}&gt; - %msg%n
+            </pattern>
+        </encoder>
+    </appender>
+
+    <root level="error">
+        <appender-ref ref="stdout_simple"/>
+    </root>
+
+</configuration>
