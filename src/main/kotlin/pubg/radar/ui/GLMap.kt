@@ -14,7 +14,9 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.*
 import com.badlogic.gdx.math.*
 import pubg.radar.*
+import pubg.radar.deserializer.channel.ActorChannel.Companion.actors
 import pubg.radar.deserializer.channel.ActorChannel.Companion.airDropLocation
+import pubg.radar.deserializer.channel.ActorChannel.Companion.corpseLocation
 import pubg.radar.deserializer.channel.ActorChannel.Companion.droppedItemLocation
 import pubg.radar.deserializer.channel.ActorChannel.Companion.visualActors
 import pubg.radar.http.PlayerProfile.Companion.completedPlayerInfo
@@ -29,6 +31,7 @@ import pubg.radar.struct.*
 import pubg.radar.struct.Archetype.*
 import pubg.radar.struct.Archetype.Plane
 import pubg.radar.struct.cmd.ActorCMD.actorWithPlayerState
+import pubg.radar.struct.cmd.ActorCMD.playerStateToActor
 import pubg.radar.struct.cmd.GameStateCMD.ElapsedWarningDuration
 import pubg.radar.struct.cmd.GameStateCMD.MatchElapsedMinutes
 import pubg.radar.struct.cmd.GameStateCMD.NumAlivePlayers
@@ -40,8 +43,13 @@ import pubg.radar.struct.cmd.GameStateCMD.RedZoneRadius
 import pubg.radar.struct.cmd.GameStateCMD.SafetyZonePosition
 import pubg.radar.struct.cmd.GameStateCMD.SafetyZoneRadius
 import pubg.radar.struct.cmd.GameStateCMD.TotalWarningDuration
-import pubg.radar.struct.cmd.PlayerStateCMD.playerStateAndNames
+import pubg.radar.struct.cmd.PlayerStateCMD.attacks
+import pubg.radar.struct.cmd.PlayerStateCMD.playerNames
+import pubg.radar.struct.cmd.PlayerStateCMD.playerNumKills
+import pubg.radar.struct.cmd.PlayerStateCMD.selfID
+import pubg.radar.struct.cmd.PlayerStateCMD.teamNumbers
 import pubg.radar.util.tuple4
+import wumo.pubg.struct.cmd.TeamCMD.team
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.math.*
@@ -61,6 +69,10 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     val spawnDesert = Vector2(78282f, 731746f)
   }
   
+  init {
+    register(this)
+  }
+  
   override fun onGameStart() {
     preSelfCoords.set(if (isErangel) spawnErangel else spawnDesert)
     selfCoords.set(preSelfCoords)
@@ -71,6 +83,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     camera.zoom = 1 / 4f
     
     aimStartTime.clear()
+    attackLineStartTime.clear()
     pinLocation.setZero()
   }
   
@@ -81,7 +94,6 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     config.setWindowedMode(1000, 1000)
     config.setResizable(true)
     config.setBackBufferConfig(8, 8, 8, 8, 32, 0, 8)
-    register(this)
     Lwjgl3Application(this, config)
   }
   
@@ -102,6 +114,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   var windowHeight = initialWindowWidth
   
   val aimStartTime = HashMap<NetworkGUID, Long>()
+  val attackLineStartTime = LinkedList<Triple<NetworkGUID, NetworkGUID, Long>>()
   val pinLocation = Vector2()
   
   fun Vector2.windowToMap() =
@@ -168,7 +181,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       map = if (isErangel) mapErangel else mapMiramar
     else
       return
-    
+    val currentTime = System.currentTimeMillis()
     val (selfX, selfY) = selfCoords
     val selfDir = Vector2(selfX, selfY).sub(preSelfCoords)
     if (selfDir.len() < 1e-8)
@@ -188,38 +201,8 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     shapeRenderer.projectionMatrix = camera.combined
     Gdx.gl.glEnable(GL20.GL_BLEND)
     
-    draw(Filled) {
-      color = BLACK
-      //thin grid
-      for (i in 0..7)
-        for (j in 0..9) {
-          rectLine(0f, i * unit + j * unit2, gridWidth, i * unit + j * unit2, 100f)
-          rectLine(i * unit + j * unit2, 0f, i * unit + j * unit2, gridWidth, 100f)
-        }
-      color = GRAY
-      //thick grid
-      for (i in 0..7) {
-        rectLine(0f, i * unit, gridWidth, i * unit, 500f)
-        rectLine(i * unit, 0f, i * unit, gridWidth, 500f)
-      }
-    }
-    
-    Gdx.gl.glLineWidth(2f)
-    draw(Line) {
-      //vision circle
-      
-      color = safeZoneColor
-      circle(PoisonGasWarningPosition, PoisonGasWarningRadius, 100)
-      
-      color = BLUE
-      circle(SafetyZonePosition, SafetyZoneRadius, 100)
-      
-      if (PoisonGasWarningPosition.len() > 0) {
-        color = safeDirectionColor
-        line(selfCoords, PoisonGasWarningPosition)
-      }
-    }
-    Gdx.gl.glLineWidth(1f)
+    drawGrid()
+    drawCircles()
     
     val typeLocation = EnumMap<Archetype, MutableList<renderInfo>>(Archetype::class.java)
     for ((_, actor) in visualActors)
@@ -239,14 +222,10 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       val (x, y) = pinLocation.mapToWindow()
       littleFont.draw(spriteBatch, "$time", x, windowHeight - y)
       safeZoneHint()
-      drawPlayerNames(typeLocation[Player])
+      drawPlayerInfos(typeLocation[Player])
     }
     
     val zoom = camera.zoom
-    val vehicle2Radius = vehicle2Width * zoom
-    val vehicle4Radius = vehicle4Width * zoom
-    val vehicle6Radius = vehicle6Width * zoom
-    var playersInVision = 0
     
     Gdx.gl.glEnable(GL20.GL_BLEND)
     draw(Filled) {
@@ -259,99 +238,15 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       color = pinColor
       circle(pinLocation, pinRadius * zoom, 10)
       
-      droppedItemLocation.values.asSequence().filter { it.second.isNotEmpty() }
-          .forEach {
-            val (x, y) = it.first
-            val items = it.second
-            val finalColor = it.third
-            
-            if (finalColor.a == 0f)
-              finalColor.set(
-                  when {
-                    "98k" in items || "m416" in items || "scar" in items -> rareWeaponColor
-                    "armor3" in items || "helmet3" in items -> rareArmorColor
-                    "4x" in items || "8x" in items -> rareScopeColor
-                    "Extended" in items || "Choke" in items || "Compensator" in items -> rareAttachColor
-                    "heal" in items || "drink" in items -> healItemColor
-                    else -> normalItemColor
-                  })
-            
-            val rare = when (finalColor) {
-              rareWeaponColor, rareArmorColor, rareScopeColor, rareAttachColor -> true
-              else -> false
-            }
-            val backgroundRadius = (itemRadius + 2000f) * zoom
-            val radius = itemRadius * zoom
-            if (rare) {
-              color = BLACK
-              rect(x - backgroundRadius, y - backgroundRadius, backgroundRadius * 2, backgroundRadius * 2)
-              color = finalColor
-              rect(x - radius, y - radius, radius * 2, radius * 2)
-            } else {
-              color = BLACK
-              circle(x, y, backgroundRadius, 10)
-              color = finalColor
-              circle(x, y, radius, 10)
-            }
-          }
-      airDropLocation.values.forEach {
-        val (x, y) = it
-        val backgroundRadius = (airDropRadius + 2000) * zoom
-        val airDropRadius = airDropRadius * zoom
-        color = BLACK
-        rect(x - backgroundRadius, y - backgroundRadius, backgroundRadius * 2, backgroundRadius * 2)
-        color = BLUE
-        rect(x, y - airDropRadius, airDropRadius, airDropRadius * 2)
-        color = RED
-        rect(x - airDropRadius, y - airDropRadius, airDropRadius, airDropRadius * 2)
-      }
-      val currentTime = System.currentTimeMillis()
+      drawItem()
+      drawAirDrop(zoom)
+      drawCorpse()
+      drawAPawn(typeLocation, selfX, selfY, zoom, currentTime)
       //draw self
       drawPlayer(LIME, tuple4(null, selfX, selfY, selfDir.angle()))
-      for ((type, actorInfos) in typeLocation) {
-        when (type) {
-          TwoSeatBoat -> actorInfos?.forEach {
-            drawVehicle(boatColor, it, vehicle2Radius, vehicle6Radius)
-          }
-          SixSeatBoat -> actorInfos?.forEach {
-            drawVehicle(boatColor, it, vehicle4Radius, vehicle6Radius)
-          }
-          TwoSeatCar -> actorInfos?.forEach {
-            drawVehicle(carColor, it, vehicle2Radius, vehicle6Radius)
-          }
-          ThreeSeatCar -> actorInfos?.forEach {
-            drawVehicle(carColor, it, vehicle2Radius, vehicle6Radius)
-          }
-          FourSeatCar -> actorInfos?.forEach {
-            drawVehicle(carColor, it, vehicle4Radius, vehicle6Radius)
-          }
-          SixSeatCar -> actorInfos?.forEach {
-            drawVehicle(carColor, it, vehicle2Radius, vehicle6Radius)
-          }
-          Plane -> actorInfos?.forEach {
-            drawPlayer(planeColor, it)
-          }
-          Player -> actorInfos?.forEach {
-            drawPlayer(playerColor, it)
-            playersInVision++
-            
-            aimAtMe(it, selfX, selfY, currentTime, zoom)
-          }
-          Parachute -> actorInfos?.forEach {
-            drawPlayer(parachuteColor, it)
-          }
-          Grenade -> actorInfos?.forEach {
-            drawPlayer(WHITE, it, false)
-          }
-          else -> {
-//            actorInfos?.forEach {
-//            bugln { "${it._1!!.archetype.pathName} ${it._1.location}" }
-//            drawPlayer(BLACK, it)
-//            }
-          }
-        }
-      }
     }
+    
+    drawAttackLine(currentTime)
     
     preSelfCoords.set(selfX, selfY)
     preDirection = selfDir
@@ -359,20 +254,219 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     Gdx.gl.glDisable(GL20.GL_BLEND)
   }
   
-  fun drawPlayerNames(players: MutableList<renderInfo>?) {
+  private fun drawAttackLine(currentTime: Long) {
+    while (attacks.isNotEmpty()) {
+      val (A, B) = attacks.poll()
+      attackLineStartTime.add(Triple(A, B, currentTime))
+    }
+    if (attackLineStartTime.isEmpty()) return
+    draw(Line) {
+      val iter = attackLineStartTime.iterator()
+      while (iter.hasNext()) {
+        val (A, B, st) = iter.next()
+        if (A == selfID || B == selfID) {
+          val enemyID = if (A == selfID) B else A
+          val actorEnemyID = playerStateToActor[enemyID]
+          if (actorEnemyID == null) {
+            iter.remove()
+            continue
+          }
+          val actorEnemy = actors[actorEnemyID]
+          if (actorEnemy == null || currentTime - st > attackMeLineDuration) {
+            iter.remove()
+            continue
+          }
+          color = attackLineColor
+          val (xA, yA) = selfCoords
+          val (xB, yB) = actorEnemy.location
+          line(xA, yA, xB, yB)
+        } else {
+          val actorAID = playerStateToActor[A]
+          val actorBID = playerStateToActor[B]
+          if (actorAID == null || actorBID == null) {
+            iter.remove()
+            continue
+          }
+          val actorA = actors[actorAID]
+          val actorB = actors[actorBID]
+          if (actorA == null || actorB == null || currentTime - st > attackLineDuration) {
+            iter.remove()
+            continue
+          }
+          color = attackLineColor
+          val (xA, yA) = actorA.location
+          val (xB, yB) = actorB.location
+          line(xA, yA, xB, yB)
+        }
+      }
+    }
+  }
+  
+  private fun drawCircles() {
+    Gdx.gl.glLineWidth(2f)
+    draw(Line) {
+      //vision circle
+      
+      color = safeZoneColor
+      circle(PoisonGasWarningPosition, PoisonGasWarningRadius, 100)
+      
+      color = BLUE
+      circle(SafetyZonePosition, SafetyZoneRadius, 100)
+      
+      if (PoisonGasWarningPosition.len() > 0) {
+        color = safeDirectionColor
+        line(selfCoords, PoisonGasWarningPosition)
+      }
+    }
+    Gdx.gl.glLineWidth(1f)
+  }
+  
+  private fun drawGrid() {
+    draw(Filled) {
+      color = BLACK
+      //thin grid
+      for (i in 0..7)
+        for (j in 0..9) {
+          rectLine(0f, i * unit + j * unit2, gridWidth, i * unit + j * unit2, 100f)
+          rectLine(i * unit + j * unit2, 0f, i * unit + j * unit2, gridWidth, 100f)
+        }
+      color = GRAY
+      //thick grid
+      for (i in 0..7) {
+        rectLine(0f, i * unit, gridWidth, i * unit, 500f)
+        rectLine(i * unit, 0f, i * unit, gridWidth, 500f)
+      }
+    }
+  }
+  
+  private fun ShapeRenderer.drawAPawn(typeLocation: EnumMap<Archetype, MutableList<renderInfo>>,
+                                      selfX: Float, selfY: Float,
+                                      zoom: Float,
+                                      currentTime: Long) {
+    for ((type, actorInfos) in typeLocation) {
+      when (type) {
+        TwoSeatBoat -> actorInfos?.forEach {
+          drawVehicle(boatColor, it, vehicle2Width, vehicle6Width)
+        }
+        SixSeatBoat -> actorInfos?.forEach {
+          drawVehicle(boatColor, it, vehicle4Width, vehicle6Width)
+        }
+        TwoSeatCar -> actorInfos?.forEach {
+          drawVehicle(carColor, it, vehicle2Width, vehicle6Width)
+        }
+        ThreeSeatCar -> actorInfos?.forEach {
+          drawVehicle(carColor, it, vehicle2Width, vehicle6Width)
+        }
+        FourSeatCar -> actorInfos?.forEach {
+          drawVehicle(carColor, it, vehicle4Width, vehicle6Width)
+        }
+        SixSeatCar -> actorInfos?.forEach {
+          drawVehicle(carColor, it, vehicle2Width, vehicle6Width)
+        }
+        Plane -> actorInfos?.forEach {
+          drawPlayer(planeColor, it)
+        }
+        Player -> actorInfos?.forEach {
+          drawPlayer(playerColor, it)
+          
+          aimAtMe(it, selfX, selfY, currentTime, zoom)
+        }
+        Parachute -> actorInfos?.forEach {
+          drawPlayer(parachuteColor, it)
+        }
+        Grenade -> actorInfos?.forEach {
+          drawPlayer(WHITE, it, false)
+        }
+        else -> {
+          //            actorInfos?.forEach {
+          //            bugln { "${it._1!!.archetype.pathName} ${it._1.location}" }
+          //            drawPlayer(BLACK, it)
+          //            }
+        }
+      }
+    }
+  }
+  
+  private fun ShapeRenderer.drawCorpse() {
+    corpseLocation.values.forEach {
+      val (x, y) = it
+      val backgroundRadius = (corpseRadius + 50f)
+      val radius = corpseRadius
+      color = BLACK
+      rect(x - backgroundRadius, y - backgroundRadius, backgroundRadius * 2, backgroundRadius * 2)
+      color = corpseColor
+      rect(x - radius, y - radius, radius * 2, radius * 2)
+    }
+  }
+  
+  private fun ShapeRenderer.drawAirDrop(zoom: Float) {
+    airDropLocation.values.forEach {
+      val (x, y) = it
+      val backgroundRadius = (airDropRadius + 2000) * zoom
+      val airDropRadius = airDropRadius * zoom
+      color = BLACK
+      rect(x - backgroundRadius, y - backgroundRadius, backgroundRadius * 2, backgroundRadius * 2)
+      color = BLUE
+      rect(x, y - airDropRadius, airDropRadius, airDropRadius * 2)
+      color = RED
+      rect(x - airDropRadius, y - airDropRadius, airDropRadius, airDropRadius * 2)
+    }
+  }
+  
+  private fun ShapeRenderer.drawItem() {
+    droppedItemLocation.values.asSequence().filter { it.second.isNotEmpty() }
+        .forEach {
+          val (x, y) = it.first
+          val items = it.second
+          val finalColor = it.third
+          
+          if (finalColor.a == 0f)
+            finalColor.set(
+                when {
+                  "98k" in items || "m416" in items || "Choke" in items || "scar" in items -> rareWeaponColor
+                  "armor3" in items || "helmet3" in items -> rareArmorColor
+                  "4x" in items || "8x" in items -> rareScopeColor
+                  "Extended" in items || "Compensator" in items -> rareAttachColor
+                  "heal" in items || "drink" in items -> healItemColor
+                  else -> normalItemColor
+                })
+          
+          val rare = when (finalColor) {
+            rareWeaponColor, rareArmorColor, rareScopeColor, rareAttachColor -> true
+            else -> false
+          }
+          val backgroundRadius = (itemRadius + 50f)
+          val radius = itemRadius
+          if (rare) {
+            color = BLACK
+            rect(x - backgroundRadius, y - backgroundRadius, backgroundRadius * 2, backgroundRadius * 2)
+            color = finalColor
+            rect(x - radius, y - radius, radius * 2, radius * 2)
+          } else {
+            color = BLACK
+            circle(x, y, backgroundRadius, 10)
+            color = finalColor
+            circle(x, y, radius, 10)
+          }
+        }
+  }
+  
+  fun drawPlayerInfos(players: MutableList<renderInfo>?) {
     players?.forEach {
       val (actor, x, y, _) = it
       actor!!
       val playerStateGUID = actorWithPlayerState[actor.netGUID] ?: return@forEach
-      val name = playerStateAndNames[playerStateGUID] ?: return@forEach
+      val name = playerNames[playerStateGUID] ?: return@forEach
+      val teamNumber = teamNumbers[playerStateGUID] ?: 0
+      val numKills = playerNumKills[playerStateGUID] ?: 0
       val (sx, sy) = Vector2(x, y).mapToWindow()
       query(name)
       if (completedPlayerInfo.containsKey(name)) {
         val info = completedPlayerInfo[name]!!
-        val desc = "$name(${info.roundMostKill})\n${info.win}/${info.totalPlayed}\n${info.killDeathRatio.d(2)}/${info.headshotKillRatio.d(2)}"
+        val desc = "$name($numKills)\n${info.win}/${info.totalPlayed}\n${info.roundMostKill}-${info.killDeathRatio.d(2)}/${info.headshotKillRatio.d(2)}\n$teamNumber"
         nameFont.draw(spriteBatch, desc, sx + 2, windowHeight - sy - 2)
       } else
-        nameFont.draw(spriteBatch, name, sx + 2, windowHeight - sy - 2)
+        nameFont.draw(spriteBatch, "$name($numKills)\n$teamNumber", sx + 2, windowHeight - sy - 2)
     }
     val profileText = "${completedPlayerInfo.size}/${completedPlayerInfo.size + pendingPlayerInfo.size}"
     layout.setText(largeFont, profileText)
@@ -423,8 +517,9 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   
   fun ShapeRenderer.aimAtMe(it: renderInfo, selfX: Float, selfY: Float, currentTime: Long, zoom: Float) {
     //draw aim line
-    val (_, x, y, dir) = it
-    val actorID = it._1!!.netGUID
+    val (actor, x, y, dir) = it
+    if (isTeamMate(actor)) return
+    val actorID = actor!!.netGUID
     val dirVec = dirUnitVector.cpy().rotate(dir)
     val focus = Vector2(selfX - x, selfY - y)
     val distance = focus.len()
@@ -456,16 +551,32 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     val directionRadius = directionRadius * zoom
     
     color = BLACK
-    val (_, x, y, dir) = actorInfo
+    val (actor, x, y, dir) = actorInfo
     circle(x, y, backgroundRadius, 10)
     
-    color = pColor
+    color = if (isTeamMate(actor))
+      teamColor
+    else
+      pColor
+    
     circle(x, y, playerRadius, 10)
     
     if (drawSight) {
       color = sightColor
       arc(x, y, directionRadius, dir - fov / 2, fov, 10)
     }
+  }
+  
+  private fun isTeamMate(actor: Actor?): Boolean {
+    if (actor != null) {
+      val playerStateGUID = actorWithPlayerState[actor.netGUID]
+      if (playerStateGUID != null) {
+        val name = playerNames[playerStateGUID] ?: return false
+        if (name in team)
+          return true
+      }
+    }
+    return false
   }
   
   fun ShapeRenderer.drawVehicle(_color: Color, actorInfo: renderInfo,
@@ -477,9 +588,9 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     
     val dirVector = dirUnitVector.cpy().rotate(dir).scl(height / 2)
     color = BLACK
-    val backVector = dirVector.cpy().nor().scl(height / 2 + 2200f * camera.zoom)
+    val backVector = dirVector.cpy().nor().scl(height / 2 + 200f)
     rectLine(x - backVector.x, y - backVector.y,
-             x + backVector.x, y + backVector.y, width + 4400f * camera.zoom)
+             x + backVector.x, y + backVector.y, width + 400f)
     color = _color
     rectLine(x - dirVector.x, y - dirVector.y,
              x + dirVector.x, y + dirVector.y, width)

@@ -2,7 +2,6 @@ package pubg.radar.http
 
 import okhttp3.*
 import pubg.radar.*
-import pubg.radar.http.PlayerProfile.Companion.search
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
@@ -105,7 +104,7 @@ class PlayerProfile {
     val headshotKillRatioRegex = Regex("\"records_headshotkillratio\":\\s*\"([0-9.]+)\"")
     
     fun search(name: String): PlayerInfo? {
-      val url = "http://radar.ali213.net/pubg10/ajax?nickname=$name"
+      val url = "http://pubg.ali213.net/pubg10/ajax?nickname=$name"
       val request = Request.Builder().url(url).build()
       client.newCall(request).execute().use {
         val result = it.body()?.string()
@@ -123,14 +122,11 @@ class PlayerProfile {
             val keys = result.substring(indices[3] + 1, indices[2]).split("|")
             val data = result.substring(indices[5] + 1, indices[4])
             val jsonData = parseData(data, keys)
-            val exclude = jsonData.lastIndexOf(';')
-            val first = jsonData.indexOf('{')
-            val json = jsonData.substring(first, exclude)
-            return PlayerInfo(roundMostKillRegex.find(json)!!.groups[1]!!.value.toInt(),
-                              winRegex.find(json)!!.groups[1]!!.value.toInt(),
-                              totalPlayedRegex.find(json)!!.groups[1]!!.value.toInt(),
-                              killDeathRatioRegex.find(json)!!.groups[1]!!.value.toFloat(),
-                              headshotKillRatioRegex.find(json)!!.groups[1]!!.value.toFloat())
+            return PlayerInfo(roundMostKillRegex.find(jsonData)!!.groups[1]!!.value.toInt(),
+                              winRegex.find(jsonData)!!.groups[1]!!.value.toInt(),
+                              totalPlayedRegex.find(jsonData)!!.groups[1]!!.value.toInt(),
+                              killDeathRatioRegex.find(jsonData)!!.groups[1]!!.value.toFloat(),
+                              headshotKillRatioRegex.find(jsonData)!!.groups[1]!!.value.toFloat())
           } catch (e: Exception) {
 //            e.printStackTrace()
           }

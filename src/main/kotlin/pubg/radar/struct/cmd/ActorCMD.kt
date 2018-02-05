@@ -23,9 +23,11 @@ object ActorCMD: GameListener {
   
   override fun onGameOver() {
     actorWithPlayerState.clear()
+    playerStateToActor.clear()
   }
   
   val actorWithPlayerState = ConcurrentHashMap<NetworkGUID, NetworkGUID>()
+  val playerStateToActor = ConcurrentHashMap<NetworkGUID, NetworkGUID>()
   
   fun process(actor: Actor, bunch: Bunch, waitingHandle: Int): Boolean {
     with(bunch) {
@@ -97,8 +99,10 @@ object ActorCMD: GameListener {
         15 -> propertyObject()
         16 -> {
           val (playerStateGUID, playerState) = propertyObject()
-          if (playerStateGUID.isValid())
+          if (playerStateGUID.isValid()) {
             actorWithPlayerState[actor.netGUID] = playerStateGUID
+            playerStateToActor[playerStateGUID] = actor.netGUID
+          }
         }
 //        17 -> {//RemoteViewPitch 2
 //          readUInt16()

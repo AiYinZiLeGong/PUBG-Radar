@@ -4,6 +4,7 @@ import com.badlogic.gdx.math.Quaternion
 import com.badlogic.gdx.math.Vector3
 import pubg.radar.struct.*
 import pubg.radar.struct.Archetype.*
+import wumo.pubg.struct.cmd.TeamCMD
 import java.util.*
 
 typealias cmdProcessor = (Actor, Bunch, Int) -> Boolean
@@ -89,7 +90,8 @@ object CMD {
             Player to ActorCMD::process,
             Parachute to APawnCMD::process,
             AirDrop to APawnCMD::process,
-            PlayerState to PlayerStateCMD::process
+            PlayerState to PlayerStateCMD::process,
+            Team to TeamCMD::process
         ))
   }
 }

@@ -19,7 +19,9 @@ enum class Archetype { //order matters, it affects the order of drawing
   Player,
   Parachute,
   AirDrop,
-  PlayerState;
+  PlayerState,
+  Team,
+  DeathDropItemPackage;
   
   companion object {
     fun fromArchetype(archetype: String) = when {
@@ -28,9 +30,8 @@ enum class Archetype { //order matters, it affects the order of drawing
       archetype.contains("DroppedItemGroup") -> DroopedItemGroup
       archetype.contains("Aircraft") -> Plane
       archetype.contains("Parachute") -> Parachute
-      archetype.contains("SideCar", true) -> ThreeSeatCar
-      archetype.contains("bike", true) -> TwoSeatCar
-      archetype.contains(Regex("(dacia|uaz|pickup|buggy)", RegexOption.IGNORE_CASE)) -> FourSeatCar
+      archetype.contains(Regex("(bike|buggy|SideCar)", RegexOption.IGNORE_CASE)) -> TwoSeatCar
+      archetype.contains(Regex("(dacia|uaz|pickup)", RegexOption.IGNORE_CASE)) -> FourSeatCar
       archetype.contains("bus", true) -> SixSeatCar
       archetype.contains("van", true) -> SixSeatCar
       archetype.contains("AquaRail", true) -> TwoSeatBoat
@@ -38,6 +39,8 @@ enum class Archetype { //order matters, it affects the order of drawing
       archetype.contains("Carapackage", true) -> AirDrop
       archetype.contains(Regex("(SmokeBomb|Molotov|Grenade|FlashBang|BigBomb)", RegexOption.IGNORE_CASE)) -> Grenade
       archetype.contains("Default__TslPlayerState") -> PlayerState
+      archetype.contains("Default__Team", true) -> Team
+      archetype.contains("DeathDropItemPackage", true) -> DeathDropItemPackage
       else -> Other
     }
   }

@@ -245,9 +245,8 @@ class Sniffer {
         val _x = raw.toIntBE(len - check1 + 1, 3)
         val _y = raw.toIntBE(len - check2 + 1, 3)
         val _z = raw.toIntBE(len - check3 + 1, 3)
-        val x = 0.125273823f * _x - 1000f
-        //val x = 0.125574025f * _x - 2442.17206f
-        val y = -0.125273823f * _y + 2101026.95f
+        val x = 0.1250155302572263f * _x - 20.58662848625851f
+        val y = -0.12499267869373985f * _y + 2097021.7946571815f
         val z = _z / 20.0f
         selfCoords = Vector2(x, y)
         return true
