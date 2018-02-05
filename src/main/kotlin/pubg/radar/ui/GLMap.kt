@@ -237,13 +237,12 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       
       color = pinColor
       circle(pinLocation, pinRadius * zoom, 10)
-      
+      //draw self
+      drawPlayer(LIME, tuple4(null, selfX, selfY, selfDir.angle()))
       drawItem()
       drawAirDrop(zoom)
       drawCorpse()
       drawAPawn(typeLocation, selfX, selfY, zoom, currentTime)
-      //draw self
-      drawPlayer(LIME, tuple4(null, selfX, selfY, selfDir.angle()))
     }
     
     drawAttackLine(currentTime)
