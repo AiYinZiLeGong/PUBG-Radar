@@ -122,6 +122,7 @@ class Sniffer {
       try {
         File(settingHome).mkdirs()
         FileOutputStream(settingFile).use {
+          if (devDesc.dev.description == null) return@use
           prop.setProperty(PROP_NetworkInterface, devDesc.dev.description)
           prop.setProperty(PROP_SniffOption, sniffOption!!.name)
           prop.store(it, "network interface to sniff")
