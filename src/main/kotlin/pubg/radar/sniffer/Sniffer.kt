@@ -3,7 +3,7 @@ package pubg.radar.sniffer
 import com.badlogic.gdx.math.Vector2
 import org.pcap4j.core.*
 import org.pcap4j.core.BpfProgram.BpfCompileMode.OPTIMIZE
-import org.pcap4j.core.PcapNetworkInterface.PromiscuousMode.NONPROMISCUOUS
+import org.pcap4j.core.PcapNetworkInterface.PromiscuousMode.*
 import org.pcap4j.packet.*
 import pubg.radar.*
 import pubg.radar.deserializer.proc_raw_packet
@@ -137,7 +137,7 @@ class Sniffer {
     }
     
     const val snapLen = 65536
-    val mode = NONPROMISCUOUS
+    val mode = PROMISCUOUS
     const val timeout = 1
     
     const val PPTPFlag: Byte = 0b0011_0000
