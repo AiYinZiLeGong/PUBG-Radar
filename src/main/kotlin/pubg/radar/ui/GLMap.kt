@@ -108,6 +108,8 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   lateinit var fontCamera: OrthographicCamera
   lateinit var camera: OrthographicCamera
   lateinit var alarmSound: Sound
+
+  private var itemSearchFilter = ""
   
   val layout = GlyphLayout()
   var windowWidth = initialWindowWidth
@@ -129,7 +131,16 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     camera.zoom *= 1.1f.pow(amount)
     return true
   }
-  
+
+  override fun keyTyped(character: Char): Boolean {
+    if (character.isLetterOrDigit() || character.toString() == " ") {
+      itemSearchFilter += character
+    } else {
+      itemSearchFilter = ""
+    }
+    return super.keyTyped(character)
+  }
+
   override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
     if (button == RIGHT) {
       pinLocation.set(pinLocation.set(screenX.toFloat(), screenY.toFloat()).windowToMap())
@@ -221,6 +232,9 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       val time = (pinLocation.cpy().sub(selfX, selfY).len() / runSpeed).toInt()
       val (x, y) = pinLocation.mapToWindow()
       littleFont.draw(spriteBatch, "$time", x, windowHeight - y)
+      if (itemSearchFilter.isNotBlank()) {
+        littleFont.draw(spriteBatch, "Item Filter: $itemSearchFilter", 10f, 20f)
+      }
       safeZoneHint()
       drawPlayerInfos(typeLocation[Player])
     }
@@ -414,6 +428,13 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   
   private fun ShapeRenderer.drawItem() {
     droppedItemLocation.values.asSequence().filter { it.second.isNotEmpty() }
+        .filter {
+          if (!itemSearchFilter.isBlank()) {
+            it.second.firstOrNull { item -> item.toLowerCase().contains(itemSearchFilter.toLowerCase()) } != null
+          } else {
+            true
+          }
+        }
         .forEach {
           val (x, y) = it.first
           val items = it.second
