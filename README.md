@@ -1,22 +1,53 @@
 # PUBG-Radar
-PUBG-Radar by sniffering udp packet
 
-Written in Kotlin
+https://github.com/SamuelNZ/PUBG-Radar/releases
 
-# Build
-Using [maven](https://maven.apache.org/)
+This version runs without the spoofing shit in a VM.
 
-# Linux
-If you experienced `X Error of failed request:  RenderBadPicture (invalid Picture parameter)` on Linux build, try switch to branch `linux`. Run with arguments `<ip_to_sniff> <PortFilter|PPTPFilter> [target_ip]`
+'Fixed' the item locations, still working on it.
 
-# vmware or middle pc setup
-Here is an easy way using `arpspoof` to redirect packets from your game pc to a middle pc.
+### Key Kinds
 
-**Note**: make sure your vmware instance or middle pc is in the same LAN as your game pc.(vmware instance should use bridged network)
+You can't filter level 3 gear
 
-Execute the following commands on the vmware or middle pc: 
-1. run `sudo apt-get install dsniff` to install `arpspoof`.
-2. edit `/etc/sysctl.conf`. add/uncomment `net.ipv4.ip_forward=1`. save and run `sudo sysctl -p` to enable ip_forward.
-3. run `sudo arpspoof -i <eth_interface_name> -t <game_pc_ip> <router_ip>` to spoof game pc.
-4. run `sudo arpspoof -i <eth_interface_name> -t <router_ip> <game_pc_ip> ` to spoof router.
-5. run `sudo java -jar pubg-radar-with-dependencies.jar <middle_pc_ip> <PortFilter|PPTPFilter> <game_pc_ip>`
+#### Item Filter:
+>NUMPAD_1 -> Filter Weapon
+
+>NUMPAD_2 -> Filter Attachments
+
+>NUMPAD_3 -> Filter Level 2
+
+>NUMPAD_4 -> Filter Scopes
+
+>NUMPAD_5 -> Filter Meds
+
+>NUMPAD_6 -> Filter Ammo (Includes Grenades)
+
+#### Zooms:
+>NUMPAD_7 -> Scouting
+
+>NUMPAD_8 -> Scout/Loot
+
+>NUMPAD_9 -> Looting
+
+### Online Mode:
+
+`java -jar target\pubg-radar-1.0-SNAPSHOT-jar-with-dependencies.jar 192.168.1.70 PortFilter 192.168.1.67`
+
+### Offline Mode:
+
+You can replay a PCAP file in offline mode:
+
+`java -jar target\pubg-radar-1.0-SNAPSHOT-jar-with-dependencies.jar 192.168.1.70 PortFilter 192.168.1.67 Offline`
+
+## Build
+Using [maven](https://maven.apache.org/) or [JetBrains](https://www.jetbrains.com/idea/)
+
+## Run
+
+Using a VM that supports OpenGL3.2 or on another machine, You shouldn't be using this on your gaming PC.
+
+You need to install JRE8 not JRE9.
+
+
+
