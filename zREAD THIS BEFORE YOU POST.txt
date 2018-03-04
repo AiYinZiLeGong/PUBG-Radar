@@ -1,0 +1,14 @@
+Manually run this in command prompt if you are having problems.
+------------------------------------
+
+mvn -v
+
+
+------------------------------------
+Paste the output in this issue:
+https://github.com/SamuelNZ/VMRadar/issues/1
+
+If you don't include this or make a new issue it will be deleted.
+
+The output should look like this if you are ready to install:
+https://i.imgur.com/9qIYkyK.png

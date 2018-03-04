@@ -1,0 +1,5 @@
+target/
+.idea
+_windows
+.gitignore
+.gitattributes

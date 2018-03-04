@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<jsmoothproject>
+<JVMSearchPath>registry</JVMSearchPath>
+<JVMSearchPath>javahome</JVMSearchPath>
+<JVMSearchPath>jrepath</JVMSearchPath>
+<JVMSearchPath>jdkpath</JVMSearchPath>
+<JVMSearchPath>exepath</JVMSearchPath>
+<JVMSearchPath>jview</JVMSearchPath>
+<arguments></arguments>
+<bundledJVMPath>PATH TO JRE 8\Program Files\Java\jre1.8.0_161</bundledJVMPath>
+<currentDirectory>${EXECUTABLEPATH}</currentDirectory>
+<embeddedJar>true</embeddedJar>
+<executableName>RadarVM.exe</executableName>
+<iconLocation>icon.ico</iconLocation>
+<initialMemoryHeap>1073741824</initialMemoryHeap>
+<jarLocation>PATH TO JAR\pubg-radar-1.0-SNAPSHOT-jar-with-dependencies.jar</jarLocation>
+<mainClassName>pubg.radar.GameKt</mainClassName>
+<maximumMemoryHeap>2146435072</maximumMemoryHeap>
+<maximumVersion>1.8</maximumVersion>
+<minimumVersion>1.8</minimumVersion>
+<skeletonName>Windowed Wrapper</skeletonName>
+<skeletonProperties>
+<key>Message</key>
+<value>Brah You Need To Install:
+
+Java Development Kit VERSION 8 with JRE8 to Use This Meme.
+
+Click OKAY to Download.
+
+If Java is installed, make sure you have JAVA_HOME in your environment path, You can google how to do this.</value>
+</skeletonProperties>
+<skeletonProperties>
+<key>URL</key>
+<value>http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html</value>
+</skeletonProperties>
+<skeletonProperties>
+<key>SingleProcess</key>
+<value>1</value>
+</skeletonProperties>
+<skeletonProperties>
+<key>SingleInstance</key>
+<value>1</value>
+</skeletonProperties>
+<skeletonProperties>
+<key>JniSmooth</key>
+<value>1</value>
+</skeletonProperties>
+<skeletonProperties>
+<key>Debug</key>
+<value>0</value>
+</skeletonProperties>
+</jsmoothproject>
