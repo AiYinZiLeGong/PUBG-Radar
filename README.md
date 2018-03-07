@@ -7,4 +7,4 @@ Written in Kotlin
 Using [maven](https://maven.apache.org/)
 
 # Note
-You need to modify the code before playing game.
+You need to modify the code before playing game, or you will be banned by BE.
