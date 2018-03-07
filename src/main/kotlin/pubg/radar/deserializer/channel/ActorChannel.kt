@@ -8,6 +8,7 @@ import pubg.radar.deserializer.actor.repl_layout_bunch
 import pubg.radar.struct.*
 import pubg.radar.struct.Archetype.*
 import pubg.radar.struct.NetGUIDCache.Companion.guidCache
+import pubg.radar.struct.cmd.PlayerStateCMD.selfID
 import java.util.concurrent.ConcurrentHashMap
 
 class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYPE_ACTOR, client) {
@@ -44,7 +45,7 @@ class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYP
   }
   
   fun ProcessBunch(bunch: Bunch) {
-    if (actor == null) {
+    if (client && actor == null) {
       if (!bunch.bOpen) {
         return
       }
@@ -52,15 +53,21 @@ class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYP
       if (actor == null)
         return
     }
-    
+    if (!client && actor == null) {
+      val clientChannel = inChannels[chIndex] ?: return
+      actor = (clientChannel as ActorChannel).actor
+      if (actor == null) return
+    }
     val actor = actor!!
     while (bunch.notEnd()) {
       //header
       val bHasRepLayout = bunch.readBit()
       val bIsActor = bunch.readBit()
+      var subobj: NetGuidCacheObject? = null
       if (!bIsActor) {
-        val (netguid, subobj) = bunch.readObject()//SubObject, SubObjectNetGUID
+        val (netguid, _subobj) = bunch.readObject()//SubObject, SubObjectNetGUID
         bugln { "subObj:${actor.netGUID} ${actor.archetype.pathName} subObj:$subobj" }
+        subobj = _subobj
         if (subobj != null) {
           //validate
         }
@@ -101,7 +108,11 @@ class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYP
             return
           repl_layout_bunch(outPayload, actor)
         }
-        
+        if (!client && subobj != null && subobj.pathName == "CharMoveComp") {
+          selfID = actor.netGUID
+          while (outPayload.notEnd())
+            charmovecomp(outPayload)
+        }
       } catch (e: Exception) {
       }
       bunch.skipBits(NumPayloadBits)
@@ -150,7 +161,7 @@ class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYP
                 droppedItemLocation[netGUID] = Triple(location, HashSet(), Color(0f, 0f, 0f, 0f))
               }
               AirDrop -> airDropLocation[netGUID] = location
-              DeathDropItemPackage-> corpseLocation[netGUID]=location
+              DeathDropItemPackage -> corpseLocation[netGUID] = location
               else -> {
               }
             }

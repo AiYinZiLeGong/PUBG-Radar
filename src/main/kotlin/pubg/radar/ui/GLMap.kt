@@ -1,7 +1,6 @@
 package pubg.radar.ui
 
 import com.badlogic.gdx.*
-import com.badlogic.gdx.Input.Buttons.RIGHT
 import com.badlogic.gdx.audio.Sound
 import com.badlogic.gdx.backends.lwjgl3.*
 import com.badlogic.gdx.graphics.*
@@ -19,17 +18,12 @@ import pubg.radar.deserializer.channel.ActorChannel.Companion.airDropLocation
 import pubg.radar.deserializer.channel.ActorChannel.Companion.corpseLocation
 import pubg.radar.deserializer.channel.ActorChannel.Companion.droppedItemLocation
 import pubg.radar.deserializer.channel.ActorChannel.Companion.visualActors
-import pubg.radar.http.PlayerProfile.Companion.completedPlayerInfo
-import pubg.radar.http.PlayerProfile.Companion.pendingPlayerInfo
-import pubg.radar.http.PlayerProfile.Companion.query
 import pubg.radar.sniffer.Sniffer.Companion.localAddr
-import pubg.radar.sniffer.Sniffer.Companion.preDirection
-import pubg.radar.sniffer.Sniffer.Companion.preSelfCoords
-import pubg.radar.sniffer.Sniffer.Companion.selfCoords
 import pubg.radar.sniffer.Sniffer.Companion.sniffOption
 import pubg.radar.struct.*
 import pubg.radar.struct.Archetype.*
 import pubg.radar.struct.Archetype.Plane
+import pubg.radar.struct.cmd.*
 import pubg.radar.struct.cmd.ActorCMD.actorWithPlayerState
 import pubg.radar.struct.cmd.ActorCMD.playerStateToActor
 import pubg.radar.struct.cmd.GameStateCMD.ElapsedWarningDuration
@@ -46,7 +40,6 @@ import pubg.radar.struct.cmd.GameStateCMD.TotalWarningDuration
 import pubg.radar.struct.cmd.PlayerStateCMD.attacks
 import pubg.radar.struct.cmd.PlayerStateCMD.playerNames
 import pubg.radar.struct.cmd.PlayerStateCMD.playerNumKills
-import pubg.radar.struct.cmd.PlayerStateCMD.selfID
 import pubg.radar.struct.cmd.PlayerStateCMD.teamNumbers
 import pubg.radar.util.tuple4
 import wumo.pubg.struct.cmd.TeamCMD.team
@@ -65,8 +58,6 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     operator fun Vector2.component1(): Float = x
     operator fun Vector2.component2(): Float = y
     
-    val spawnErangel = Vector2(795548.3f, 17385.875f)
-    val spawnDesert = Vector2(78282f, 731746f)
   }
   
   init {
@@ -74,9 +65,8 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   }
   
   override fun onGameStart() {
-    preSelfCoords.set(if (isErangel) spawnErangel else spawnDesert)
-    selfCoords.set(preSelfCoords)
-    preDirection.setZero()
+    selfCoords.setZero()
+    selfAttachTo = null
   }
   
   override fun onGameOver() {
@@ -117,25 +107,18 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   val attackLineStartTime = LinkedList<Triple<NetworkGUID, NetworkGUID, Long>>()
   val pinLocation = Vector2()
   
-  fun Vector2.windowToMap() =
+  fun windowToMap(x: Float, y: Float) =
       Vector2(selfCoords.x + (x - windowWidth / 2.0f) * camera.zoom * windowToMapUnit,
               selfCoords.y + (y - windowHeight / 2.0f) * camera.zoom * windowToMapUnit)
   
-  fun Vector2.mapToWindow() =
+  fun mapToWindow(x: Float, y: Float) =
       Vector2((x - selfCoords.x) / (camera.zoom * windowToMapUnit) + windowWidth / 2.0f,
               (y - selfCoords.y) / (camera.zoom * windowToMapUnit) + windowHeight / 2.0f)
+  fun Vector2.mapToWindow() = mapToWindow(x, y)
   
   override fun scrolled(amount: Int): Boolean {
     camera.zoom *= 1.1f.pow(amount)
     return true
-  }
-  
-  override fun touchDown(screenX: Int, screenY: Int, pointer: Int, button: Int): Boolean {
-    if (button == RIGHT) {
-      pinLocation.set(pinLocation.set(screenX.toFloat(), screenY.toFloat()).windowToMap())
-      return true
-    }
-    return false
   }
   
   override fun create() {
@@ -182,10 +165,10 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     else
       return
     val currentTime = System.currentTimeMillis()
+    selfAttachTo?.apply {
+      selfCoords.set(location.x, location.y)
+    }
     val (selfX, selfY) = selfCoords
-    val selfDir = Vector2(selfX, selfY).sub(preSelfCoords)
-    if (selfDir.len() < 1e-8)
-      selfDir.set(preDirection)
     
     //move camera
     camera.position.set(selfX, selfY, 0f)
@@ -218,11 +201,8 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       largeFont.draw(spriteBatch, "$NumAlivePlayers/$NumAliveTeams\n" +
                                   "${MatchElapsedMinutes}min\n" +
                                   "${ElapsedWarningDuration.toInt()}/${TotalWarningDuration.toInt()}\n", 10f, windowHeight - 10f)
-      val time = (pinLocation.cpy().sub(selfX, selfY).len() / runSpeed).toInt()
-      val (x, y) = pinLocation.mapToWindow()
-      littleFont.draw(spriteBatch, "$time", x, windowHeight - y)
       safeZoneHint()
-      drawPlayerInfos(typeLocation[Player])
+      drawPlayerInfos(typeLocation[Player],selfX,selfY)
     }
     
     val zoom = camera.zoom
@@ -238,7 +218,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       color = pinColor
       circle(pinLocation, pinRadius * zoom, 10)
       //draw self
-      drawPlayer(LIME, tuple4(null, selfX, selfY, selfDir.angle()))
+      drawPlayer(LIME, tuple4(null, selfX, selfY, selfDirection))
       drawItem()
       drawAirDrop(zoom)
       drawCorpse()
@@ -246,9 +226,6 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     }
     
     drawAttackLine(currentTime)
-    
-    preSelfCoords.set(selfX, selfY)
-    preDirection = selfDir
     
     Gdx.gl.glDisable(GL20.GL_BLEND)
   }
@@ -263,40 +240,22 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       val iter = attackLineStartTime.iterator()
       while (iter.hasNext()) {
         val (A, B, st) = iter.next()
-        if (A == selfID || B == selfID) {
-          val enemyID = if (A == selfID) B else A
-          val actorEnemyID = playerStateToActor[enemyID]
-          if (actorEnemyID == null) {
-            iter.remove()
-            continue
-          }
-          val actorEnemy = actors[actorEnemyID]
-          if (actorEnemy == null || currentTime - st > attackMeLineDuration) {
-            iter.remove()
-            continue
-          }
-          color = attackLineColor
-          val (xA, yA) = selfCoords
-          val (xB, yB) = actorEnemy.location
-          line(xA, yA, xB, yB)
-        } else {
-          val actorAID = playerStateToActor[A]
-          val actorBID = playerStateToActor[B]
-          if (actorAID == null || actorBID == null) {
-            iter.remove()
-            continue
-          }
-          val actorA = actors[actorAID]
-          val actorB = actors[actorBID]
-          if (actorA == null || actorB == null || currentTime - st > attackLineDuration) {
-            iter.remove()
-            continue
-          }
-          color = attackLineColor
-          val (xA, yA) = actorA.location
-          val (xB, yB) = actorB.location
-          line(xA, yA, xB, yB)
+        val actorAID = playerStateToActor[A]
+        val actorBID = playerStateToActor[B]
+        if (actorAID == null || actorBID == null) {
+          iter.remove()
+          continue
         }
+        val actorA = actors[actorAID]
+        val actorB = actors[actorBID]
+        if (actorA == null || actorB == null || currentTime - st > attackLineDuration) {
+          iter.remove()
+          continue
+        }
+        color = attackLineColor
+        val (xA, yA) = actorA.location
+        val (xB, yB) = actorB.location
+        line(xA, yA, xB, yB)
       }
     }
   }
@@ -450,26 +409,21 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
         }
   }
   
-  fun drawPlayerInfos(players: MutableList<renderInfo>?) {
+  fun drawPlayerInfos(players: MutableList<renderInfo>?, selfX: Float, selfY: Float) {
     players?.forEach {
       val (actor, x, y, _) = it
       actor!!
+      val dir = Vector2(x - selfX, y - selfY)
+      val distance = (dir.len() / 100).toInt()
+      val angle = ((dir.angle() + 90) % 360).toInt()
+      val (sx, sy) = mapToWindow(x, y)
+      nameFont.draw(spriteBatch, "$angle°${distance}m", sx + 6, windowHeight - sy + 9)
       val playerStateGUID = actorWithPlayerState[actor.netGUID] ?: return@forEach
       val name = playerNames[playerStateGUID] ?: return@forEach
       val teamNumber = teamNumbers[playerStateGUID] ?: 0
       val numKills = playerNumKills[playerStateGUID] ?: 0
-      val (sx, sy) = Vector2(x, y).mapToWindow()
-      query(name)
-      if (completedPlayerInfo.containsKey(name)) {
-        val info = completedPlayerInfo[name]!!
-        val desc = "$name($numKills)\n${info.win}/${info.totalPlayed}\n${info.roundMostKill}-${info.killDeathRatio.d(2)}/${info.headshotKillRatio.d(2)}\n$teamNumber"
-        nameFont.draw(spriteBatch, desc, sx + 2, windowHeight - sy - 2)
-      } else
-        nameFont.draw(spriteBatch, "$name($numKills)\n$teamNumber", sx + 2, windowHeight - sy - 2)
+      nameFont.draw(spriteBatch, "$name($numKills)\n$teamNumber", sx + 2, windowHeight - sy - 2)
     }
-    val profileText = "${completedPlayerInfo.size}/${completedPlayerInfo.size + pendingPlayerInfo.size}"
-    layout.setText(largeFont, profileText)
-    largeFont.draw(spriteBatch, profileText, windowWidth - layout.width, windowHeight - 10f)
   }
   
   var lastPlayTime = System.currentTimeMillis()

@@ -113,7 +113,8 @@ fun Buffer.proc_raw_packet(client: Boolean) {
           bugln { "create chIndex=$chIndex,chSequence=$chSequence,chType=$chType" }
           if (chType == CHTYPE_NONE)
             println("$chSequence lost the first actor creation bunch. just create as we need it.")
-          channels[chIndex] = ActorChannel(chIndex, client)
+          inChannels[chIndex] = ActorChannel(chIndex, true)
+          outChannels[chIndex] = ActorChannel(chIndex, false)
         }
       }
     }
