@@ -220,13 +220,10 @@ class Sniffer {
                 if (udp.header.dstPort.valueAsInt() in 7000..7999)
                   proc_raw_packet(raw, false)
               } else if (udp.header.srcPort.valueAsInt() in 7000..7999)
-                proc_raw_packet(raw)
-            } catch (e: IndexOutOfBoundsException) {
+                proc_raw_packet(raw,true)
             } catch (e: Exception) {
-            } catch (e: NotOpenException) {
-              break
             }
-            Thread.sleep(10)
+            Thread.sleep(1)
           }
         }
       }
