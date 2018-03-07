@@ -64,11 +64,9 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     register(this)
   }
   
-  var firstAttach = true
   override fun onGameStart() {
     selfCoords.setZero()
     selfAttachTo = null
-    firstAttach = true
   }
   
   override fun onGameOver() {
@@ -168,8 +166,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       return
     val currentTime = System.currentTimeMillis()
      selfAttachTo?.apply {
-      if (firstAttach || Vector2(selfCoords.x - location.x, selfCoords.y - location.y).len() < 10000) {
-        firstAttach = false
+      if (Type == Plane || Type == Parachute || Vector2(selfCoords.x - location.x, selfCoords.y - location.y).len() < 10000) {
         selfCoords.set(location.x, location.y)
         selfDirection = rotation.y
       }
