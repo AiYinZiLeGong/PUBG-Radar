@@ -81,7 +81,7 @@ class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYP
             repObj = _subobj.pathName
           } else {
             val (classGUID, classObj) = bunch.readObject()//SubOjbectClass,SubObjectClassNetGUID
-            if (classObj != null && actor.Type == DroopedItemGroup) {
+            if (classObj != null && (actor.Type == DroopedItemGroup || actor.Type == DroppedItem)) {
               val sn = Item.isGood(classObj.pathName)
               if (sn != null)
                 droppedItemLocation[netguid] = tuple2(Vector2(actor.location.x, actor.location.y), sn)
@@ -101,6 +101,8 @@ class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYP
         bugln { "NumPayloadBits=$NumPayloadBits > bunch.bitsLeft()=${bunch.bitsLeft()}" }
         return
       }
+      if (NumPayloadBits == 0)
+        continue
       try {
         val outPayload = bunch.deepCopy(NumPayloadBits)
         

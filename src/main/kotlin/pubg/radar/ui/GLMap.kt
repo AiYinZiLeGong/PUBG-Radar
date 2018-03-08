@@ -24,6 +24,7 @@ import pubg.radar.struct.*
 import pubg.radar.struct.Archetype.*
 import pubg.radar.struct.Archetype.Plane
 import pubg.radar.struct.cmd.*
+import pubg.radar.struct.cmd.ActorCMD.actorHealth
 import pubg.radar.struct.cmd.ActorCMD.actorWithPlayerState
 import pubg.radar.struct.cmd.ActorCMD.playerStateToActor
 import pubg.radar.struct.cmd.GameStateCMD.ElapsedWarningDuration
@@ -40,6 +41,7 @@ import pubg.radar.struct.cmd.GameStateCMD.TotalWarningDuration
 import pubg.radar.struct.cmd.PlayerStateCMD.attacks
 import pubg.radar.struct.cmd.PlayerStateCMD.playerNames
 import pubg.radar.struct.cmd.PlayerStateCMD.playerNumKills
+import pubg.radar.struct.cmd.PlayerStateCMD.selfID
 import pubg.radar.struct.cmd.PlayerStateCMD.teamNumbers
 import pubg.radar.util.tuple4
 import wumo.pubg.struct.cmd.TeamCMD.team
@@ -356,6 +358,9 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       rect(x - backgroundRadius, y - backgroundRadius, backgroundRadius * 2, backgroundRadius * 2)
       color = corpseColor
       rect(x - radius, y - radius, radius * 2, radius * 2)
+      color = BLACK
+      rectLine(x - radius, y, x + radius, y, 50f)
+      rectLine(x, y - radius, x, y + radius, 50f)
     }
   }
   
@@ -416,12 +421,11 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       val distance = (dir.len() / 100).toInt()
       val angle = ((dir.angle() + 90) % 360).toInt()
       val (sx, sy) = mapToWindow(x, y)
-      nameFont.draw(spriteBatch, "$angle°${distance}m", sx + 6, windowHeight - sy + 9)
       val playerStateGUID = actorWithPlayerState[actor.netGUID] ?: return@forEach
       val name = playerNames[playerStateGUID] ?: return@forEach
       val teamNumber = teamNumbers[playerStateGUID] ?: 0
       val numKills = playerNumKills[playerStateGUID] ?: 0
-      nameFont.draw(spriteBatch, "$name($numKills)\n$teamNumber", sx + 2, windowHeight - sy - 2)
+      nameFont.draw(spriteBatch, "$angle°${distance}m\n$name($numKills)\n$teamNumber", sx + 20, windowHeight - sy + 20)
     }
   }
   
@@ -506,16 +510,36 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     val (actor, x, y, dir) = actorInfo
     circle(x, y, backgroundRadius, 10)
     
-    color = if (isTeamMate(actor))
-      teamColor
-    else
-      pColor
+    val attach = actor?.attachChildren?.values?.firstOrNull()
+    
+    color = when {
+      isTeamMate(actor) -> teamColor
+      attach == null -> pColor
+      attach == selfID -> selfColor
+      isTeamMate(actors[attach]) -> teamColor
+      else -> pColor
+    }
     
     circle(x, y, playerRadius, 10)
     
     if (drawSight) {
       color = sightColor
       arc(x, y, directionRadius, dir - fov / 2, fov, 10)
+    }
+    if (actor != null && actor.isACharacter) {//draw health
+      val health = actorHealth[actor.netGUID] ?: 100f
+      val width = healthBarWidth * zoom
+      val height = healthBarHeight * zoom
+      val y = y + backgroundRadius
+//      color = WHITE
+//      rectLine(x - width / 2, y, x + width / 2, y, height)
+      val healthWidth = (health / 100.0 * width).toFloat()
+      color = when {
+        health > 80f -> GREEN
+        health > 33f -> ORANGE
+        else -> RED
+      }
+      rectLine(x - width / 2, y, x - width / 2 + healthWidth, y, height)
     }
   }
   
@@ -546,9 +570,17 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     color = _color
     rectLine(x - dirVector.x, y - dirVector.y,
              x + dirVector.x, y + dirVector.y, width)
-    
-    if (actor.beAttached || v_x * v_x + v_y * v_y > 40) {
-      color = playerColor
+    color = playerColor
+    if (actor.attachChildren.isNotEmpty() || v_x * v_x + v_y * v_y > 40) {
+      actor.attachChildren.forEach { k, _ ->
+        if (k == selfID) {
+          color = selfColor
+          return@forEach
+        } else if (isTeamMate(actors[k])) {
+          color = teamColor
+          return@forEach
+        }
+      }
       circle(x, y, playerRadius * camera.zoom, 10)
     }
   }

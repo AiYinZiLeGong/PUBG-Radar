@@ -12,13 +12,15 @@ const val unit = gridWidth / 8
 const val unit2 = unit / 10
 //1m=100
 const val playerRadius = 4000f
+const val healthBarWidth = 15000f
+const val healthBarHeight = 2000f
 const val vehicle2Width = 400f
 const val vehicle4Width = 800f
 const val vehicle6Width = 1600f
 const val directionRadius = 16000f
 const val airDropRadius = 4000f
-const val corpseRadius = 300f
-const val itemRadius = 200f
+const val corpseRadius = 150f
+const val itemRadius = 100f
 const val visionRadius = mapWidth / 8
 const val fov = 90f
 
@@ -30,6 +32,7 @@ const val attackLineDuration = 1000
 const val attackMeLineDuration = 10000
 const val pinRadius = 4000f
 
+val selfColor = Color(0x32cd32ff)
 val teamColor = Color(1f, 1f, 0f, 1f)
 val safeDirectionColor = Color(0.12f, 0.56f, 1f, 0.5f)
 val visionColor = Color(1f, 1f, 1f, 0.1f)

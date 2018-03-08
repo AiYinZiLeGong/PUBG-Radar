@@ -266,7 +266,7 @@ open class Buffer(
     val bias = 1 shl (numBits - 1)//1000 0000 - Bias to pivot around (in order to support signed values)
     val serIntMax = 1 shl (numBits - 0)// 1 0000 0000 - What we pass into SerializeInt
     val maxDelta = (1 shl (numBits - 0)) - 1//   1111 1111 - Max delta is
-    val delta = readUInt32()
+    val delta = readInt(serIntMax)
     val unscaledValue = (delta - bias).toFloat()
     return if (maxValue > maxBitValue) {
       val invScale = maxValue / maxBitValue.toFloat()

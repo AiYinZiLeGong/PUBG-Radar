@@ -3,6 +3,7 @@ package pubg.radar.struct
 import com.badlogic.gdx.math.Vector3
 import pubg.radar.struct.Archetype.*
 import pubg.radar.struct.Archetype.Companion.fromArchetype
+import java.util.concurrent.ConcurrentHashMap
 
 enum class Archetype { //order matters, it affects the order of drawing
   Other,
@@ -21,7 +22,8 @@ enum class Archetype { //order matters, it affects the order of drawing
   AirDrop,
   PlayerState,
   Team,
-  DeathDropItemPackage;
+  DeathDropItemPackage,
+  DroppedItem;
   
   companion object {
     fun fromArchetype(archetype: String) = when {
@@ -41,6 +43,7 @@ enum class Archetype { //order matters, it affects the order of drawing
       archetype.contains("Default__TslPlayerState") -> PlayerState
       archetype.contains("Default__Team", true) -> Team
       archetype.contains("DeathDropItemPackage", true) -> DeathDropItemPackage
+      archetype.contains("DroppedItem") -> DroppedItem
       else -> Other
     }
   }
@@ -54,8 +57,8 @@ class Actor(val netGUID: NetworkGUID, val archetypeGUID: NetworkGUID, val archet
   var velocity = Vector3.Zero
   
   var owner: NetworkGUID? = null
-  var attachTo: NetworkGUID? = null
-  var beAttached = false
+  var attachParent: NetworkGUID? = null
+  var attachChildren = ConcurrentHashMap<NetworkGUID, NetworkGUID>()
   var isStatic = false
   
   override fun toString(): String {

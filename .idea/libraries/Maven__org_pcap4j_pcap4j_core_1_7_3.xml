@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: org.pcap4j:pcap4j-core:1.7.3">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/pcap4j/pcap4j-core/1.7.3/pcap4j-core-1.7.3.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/org/pcap4j/pcap4j-core/1.7.3/pcap4j-core-1.7.3-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/pcap4j/pcap4j-core/1.7.3/pcap4j-core-1.7.3-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
