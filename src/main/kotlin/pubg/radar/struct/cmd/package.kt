@@ -1,13 +1,13 @@
 package pubg.radar.struct.cmd
 
-import com.badlogic.gdx.math.Quaternion
-import com.badlogic.gdx.math.Vector3
+import com.badlogic.gdx.math.*
 import pubg.radar.struct.*
 import pubg.radar.struct.Archetype.*
+import pubg.radar.struct.Archetype.Plane
 import wumo.pubg.struct.cmd.TeamCMD
 import java.util.*
 
-typealias cmdProcessor = (Actor, Bunch, Int) -> Boolean
+typealias cmdProcessor = (Actor, Bunch, Int, HashMap<String, Any?>) -> Boolean
 
 enum class REPCMD {
   DynamicArray,  //0 Dynamic array
@@ -71,28 +71,24 @@ object CMD {
   fun Bunch.propertyString() = readString()
   fun Bunch.propertyUInt64() = readInt64()
   
-  val processors: Map<Archetype, cmdProcessor>
-  
-  init {
-    processors = EnumMap<Archetype, cmdProcessor>(
-        mapOf(
-            GameState to GameStateCMD::process,
-            Other to APawnCMD::process,
-            DroopedItemGroup to APawnCMD::process,
-            Grenade to APawnCMD::process,
-            TwoSeatBoat to APawnCMD::process,
-            SixSeatBoat to APawnCMD::process,
-            TwoSeatCar to APawnCMD::process,
-            ThreeSeatCar to APawnCMD::process,
-            FourSeatCar to APawnCMD::process,
-            SixSeatCar to APawnCMD::process,
-            Plane to APawnCMD::process,
-            Player to ActorCMD::process,
-            Parachute to APawnCMD::process,
-            AirDrop to APawnCMD::process,
-            PlayerState to PlayerStateCMD::process,
-            Team to TeamCMD::process
-        ))
-  }
+  val processors = mapOf<String, cmdProcessor>(
+      GameState.name to GameStateCMD::process,
+      Other.name to APawnCMD::process,
+      DroopedItemGroup.name to APawnCMD::process,
+      Grenade.name to APawnCMD::process,
+      TwoSeatBoat.name to APawnCMD::process,
+      SixSeatBoat.name to APawnCMD::process,
+      TwoSeatCar.name to APawnCMD::process,
+      ThreeSeatCar.name to APawnCMD::process,
+      FourSeatCar.name to APawnCMD::process,
+      SixSeatCar.name to APawnCMD::process,
+      Plane.name to APawnCMD::process,
+      Player.name to ActorCMD::process,
+      Parachute.name to APawnCMD::process,
+      AirDrop.name to APawnCMD::process,
+      PlayerState.name to PlayerStateCMD::process,
+      Team.name to TeamCMD::process,
+      "DroppedItemInteractionComponent" to DroppedItemInteractionComponentCMD::process
+  )
 }
 

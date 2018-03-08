@@ -1,7 +1,6 @@
 package pubg.radar.deserializer.channel
 
-import com.badlogic.gdx.graphics.Color
-import com.badlogic.gdx.math.Vector3
+import com.badlogic.gdx.math.*
 import pubg.radar.*
 import pubg.radar.deserializer.CHTYPE_ACTOR
 import pubg.radar.deserializer.actor.repl_layout_bunch
@@ -9,6 +8,7 @@ import pubg.radar.struct.*
 import pubg.radar.struct.Archetype.*
 import pubg.radar.struct.NetGUIDCache.Companion.guidCache
 import pubg.radar.struct.cmd.PlayerStateCMD.selfID
+import pubg.radar.util.tuple2
 import java.util.concurrent.ConcurrentHashMap
 
 class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYPE_ACTOR, client) {
@@ -20,7 +20,7 @@ class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYP
     val actors = ConcurrentHashMap<NetworkGUID, Actor>()
     val visualActors = ConcurrentHashMap<NetworkGUID, Actor>()
     val airDropLocation = ConcurrentHashMap<NetworkGUID, Vector3>()
-    val droppedItemLocation = ConcurrentHashMap<NetworkGUID, Triple<Vector3, HashSet<String>, Color>>()
+    val droppedItemLocation = ConcurrentHashMap<NetworkGUID, tuple2<Vector2, String>>()
     val corpseLocation = ConcurrentHashMap<NetworkGUID, Vector3>()
     
     override fun onGameOver() {
@@ -63,35 +63,37 @@ class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYP
       //header
       val bHasRepLayout = bunch.readBit()
       val bIsActor = bunch.readBit()
-      var subobj: NetGuidCacheObject? = null
-      if (!bIsActor) {
+      var repObj: String?
+      if (bIsActor) {
+        repObj = actor.Type.name
+      } else {
         val (netguid, _subobj) = bunch.readObject()//SubObject, SubObjectNetGUID
-        bugln { "subObj:${actor.netGUID} ${actor.archetype.pathName} subObj:$subobj" }
-        subobj = _subobj
-        if (subobj != null) {
-          //validate
-        }
-        if (client) {
+        if (!client) {
+          if (_subobj == null)// The server should never need to create sub objects
+            continue
+          repObj = _subobj.pathName
+          bugln { "$actor hasSubObj $repObj" }
+        } else {
           val bStablyNamed = bunch.readBit()
           if (bStablyNamed) {// If this is a stably named sub-object, we shouldn't need to create it
-            if (subobj == null)
+            if (_subobj == null)
               continue
+            repObj = _subobj.pathName
           } else {
             val (classGUID, classObj) = bunch.readObject()//SubOjbectClass,SubObjectClassNetGUID
             if (classObj != null && actor.Type == DroopedItemGroup) {
               val sn = Item.isGood(classObj.pathName)
               if (sn != null)
-                droppedItemLocation[actor.netGUID]!!.second.add(sn)
+                droppedItemLocation[netguid] = tuple2(Vector2(actor.location.x, actor.location.y), sn)
             }
             bugln { "subObjClass:${actor.netGUID} ${actor.archetype.pathName} classObj:$classObj" }
             if (!classGUID.isValid() || classObj == null)
               continue
             val subobj = NetGuidCacheObject(classObj.pathName, classGUID)
             guidCache.registerNetGUID_Client(netguid, subobj)
+            repObj = subobj.pathName
           }
-        } else {
-          if (subobj == null)
-            continue
+          
         }
       }
       val NumPayloadBits = bunch.readIntPacked()
@@ -106,10 +108,9 @@ class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYP
         if (bHasRepLayout) {
           if (!client)// Server shouldn't receive properties.
             return
-          if (bIsActor)
-            repl_layout_bunch(outPayload, actor)
+          repl_layout_bunch(outPayload, repObj, actor)
         }
-        if (!client && subobj != null && subobj.pathName == "CharMoveComp") {
+        if (!client && repObj == "CharMoveComp") {
           selfID = actor.netGUID
           while (outPayload.notEnd())
             charmovecomp(outPayload)
@@ -158,9 +159,6 @@ class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYP
           if (client) {
             actors[netGUID] = this
             when (Type) {
-              DroopedItemGroup -> {
-                droppedItemLocation[netGUID] = Triple(location, HashSet(), Color(0f, 0f, 0f, 0f))
-              }
               AirDrop -> airDropLocation[netGUID] = location
               DeathDropItemPackage -> corpseLocation[netGUID] = location
               else -> {

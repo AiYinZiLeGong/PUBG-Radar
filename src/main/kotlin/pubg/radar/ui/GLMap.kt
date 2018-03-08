@@ -114,6 +114,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   fun mapToWindow(x: Float, y: Float) =
       Vector2((x - selfCoords.x) / (camera.zoom * windowToMapUnit) + windowWidth / 2.0f,
               (y - selfCoords.y) / (camera.zoom * windowToMapUnit) + windowHeight / 2.0f)
+  
   fun Vector2.mapToWindow() = mapToWindow(x, y)
   
   override fun scrolled(amount: Int): Boolean {
@@ -165,7 +166,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     else
       return
     val currentTime = System.currentTimeMillis()
-     selfAttachTo?.apply {
+    selfAttachTo?.apply {
       selfCoords.set(location.x, location.y)
       selfDirection = rotation.y
     }
@@ -203,7 +204,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
                                   "${MatchElapsedMinutes}min\n" +
                                   "${ElapsedWarningDuration.toInt()}/${TotalWarningDuration.toInt()}\n", 10f, windowHeight - 10f)
       safeZoneHint()
-      drawPlayerInfos(typeLocation[Player],selfX,selfY)
+      drawPlayerInfos(typeLocation[Player], selfX, selfY)
     }
     
     val zoom = camera.zoom
@@ -373,22 +374,19 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
   }
   
   private fun ShapeRenderer.drawItem() {
-    droppedItemLocation.values.asSequence().filter { it.second.isNotEmpty() }
+    droppedItemLocation.values
         .forEach {
-          val (x, y) = it.first
-          val items = it.second
-          val finalColor = it.third
+          val (x, y) = it._1
+          val items = it._2
           
-          if (finalColor.a == 0f)
-            finalColor.set(
-                when {
-                  "98k" in items || "m416" in items || "Choke" in items || "scar" in items -> rareWeaponColor
-                  "armor3" in items || "helmet3" in items -> rareArmorColor
-                  "4x" in items || "8x" in items -> rareScopeColor
-                  "Extended" in items || "Compensator" in items -> rareAttachColor
-                  "heal" in items || "drink" in items -> healItemColor
-                  else -> normalItemColor
-                })
+          val finalColor = when {
+            "98k" in items || "m416" in items || "Choke" in items || "scar" in items -> rareWeaponColor
+            "armor3" in items || "helmet3" in items -> rareArmorColor
+            "4x" in items || "8x" in items -> rareScopeColor
+            "Extended" in items || "Compensator" in items -> rareAttachColor
+            "heal" in items || "drink" in items -> healItemColor
+            else -> normalItemColor
+          }
           
           val rare = when (finalColor) {
             rareWeaponColor, rareArmorColor, rareScopeColor, rareAttachColor -> true
