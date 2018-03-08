@@ -5,8 +5,12 @@ Written in Kotlin
 
 # Changes
 * Get self player's location by parsing `CharMoveComp` RPC. So the player's direction is corrected now. 
-* Get items' relative locaiton by `DroppedItemInteractionComponent`. So the item location is corrected now.
-* change `readRotator()` to `readRotationShort()` fixes empty player state.
+* Get item's relative locaiton by `DroppedItemInteractionComponent`. So the item location is corrected now.
+* Change `readRotator()` to `readRotationShort()` fixes empty player state.
+* `DroppedItem` is shown.
+* Fully parse `ATslCharacter`. So player health is shown.
+* Correct player color when driving.
+
 # Build
 Using [maven](https://maven.apache.org/)
 

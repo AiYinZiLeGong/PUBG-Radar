@@ -530,9 +530,9 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       val health = actorHealth[actor.netGUID] ?: 100f
       val width = healthBarWidth * zoom
       val height = healthBarHeight * zoom
-      val y = y + backgroundRadius
+      val y = y + backgroundRadius+height/2
 //      color = WHITE
-//      rectLine(x - width / 2, y, x + width / 2, y, height)
+//      rectLine(x - width / 2, y, x + width / 2, y, height+50f*zoom)
       val healthWidth = (health / 100.0 * width).toFloat()
       color = when {
         health > 80f -> GREEN
