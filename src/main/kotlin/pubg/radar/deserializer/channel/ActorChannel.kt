@@ -106,7 +106,8 @@ class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYP
         if (bHasRepLayout) {
           if (!client)// Server shouldn't receive properties.
             return
-          repl_layout_bunch(outPayload, actor)
+          if (bIsActor)
+            repl_layout_bunch(outPayload, actor)
         }
         if (!client && subobj != null && subobj.pathName == "CharMoveComp") {
           selfID = actor.netGUID

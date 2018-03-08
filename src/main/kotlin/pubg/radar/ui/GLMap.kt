@@ -166,10 +166,8 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       return
     val currentTime = System.currentTimeMillis()
      selfAttachTo?.apply {
-      if (Type == Plane || Type == Parachute || Vector2(selfCoords.x - location.x, selfCoords.y - location.y).len() < 10000) {
-        selfCoords.set(location.x, location.y)
-        selfDirection = rotation.y
-      }
+      selfCoords.set(location.x, location.y)
+      selfDirection = rotation.y
     }
     val (selfX, selfY) = selfCoords
     
