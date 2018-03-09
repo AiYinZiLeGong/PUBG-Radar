@@ -11,6 +11,7 @@ Written in Kotlin
 * Fully parse `ATslCharacter`. So player health is shown.
 * Correct player color when driving.
 * `Equipped weapons` are shown.
+* Clear `DroppedItem` and `DroppedItemGroup` when `picking up`.
 
 # Build
 Using [maven](https://maven.apache.org/)
