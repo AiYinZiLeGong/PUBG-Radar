@@ -10,6 +10,7 @@ Written in Kotlin
 * `DroppedItem` is shown.
 * Fully parse `ATslCharacter`. So player health is shown.
 * Correct player color when driving.
+* `Equipped weapons` are shown.
 
 # Build
 Using [maven](https://maven.apache.org/)

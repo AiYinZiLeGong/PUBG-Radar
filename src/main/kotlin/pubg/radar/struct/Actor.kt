@@ -23,7 +23,9 @@ enum class Archetype { //order matters, it affects the order of drawing
   PlayerState,
   Team,
   DeathDropItemPackage,
-  DroppedItem;
+  DroppedItem,
+  WeaponProcessor,
+  Weapon;
   
   companion object {
     fun fromArchetype(archetype: String) = when {
@@ -44,6 +46,8 @@ enum class Archetype { //order matters, it affects the order of drawing
       archetype.contains("Default__Team", true) -> Team
       archetype.contains("DeathDropItemPackage", true) -> DeathDropItemPackage
       archetype.contains("DroppedItem") -> DroppedItem
+      archetype.contains("Default__WeaponProcessor") -> WeaponProcessor
+      archetype.contains("Weap") -> Weapon
       else -> Other
     }
   }

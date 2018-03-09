@@ -13,11 +13,13 @@ import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.*
 import com.badlogic.gdx.math.*
 import pubg.radar.*
+import pubg.radar.deserializer.channel.ActorChannel.Companion.actorHasWeapons
 import pubg.radar.deserializer.channel.ActorChannel.Companion.actors
 import pubg.radar.deserializer.channel.ActorChannel.Companion.airDropLocation
 import pubg.radar.deserializer.channel.ActorChannel.Companion.corpseLocation
 import pubg.radar.deserializer.channel.ActorChannel.Companion.droppedItemLocation
 import pubg.radar.deserializer.channel.ActorChannel.Companion.visualActors
+import pubg.radar.deserializer.channel.ActorChannel.Companion.weapons
 import pubg.radar.sniffer.Sniffer.Companion.localAddr
 import pubg.radar.sniffer.Sniffer.Companion.sniffOption
 import pubg.radar.struct.*
@@ -425,7 +427,16 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       val name = playerNames[playerStateGUID] ?: return@forEach
       val teamNumber = teamNumbers[playerStateGUID] ?: 0
       val numKills = playerNumKills[playerStateGUID] ?: 0
-      nameFont.draw(spriteBatch, "$angle°${distance}m\n$name($numKills)\n$teamNumber", sx + 20, windowHeight - sy + 20)
+      val equippedWeapons = actorHasWeapons[actor.netGUID]
+      var weapon: String? = ""
+      if (equippedWeapons != null) {
+        for (w in equippedWeapons) {
+          val a = weapons[w] ?: continue
+          val result=a.archetype.pathName.split("_")
+          weapon += result[2].substring(4) + "\n"
+        }
+      }
+      nameFont.draw(spriteBatch, "$angle°${distance}m\n$name[$teamNumber]->$numKills\n$weapon", sx + 20, windowHeight - sy + 20)
     }
   }
   

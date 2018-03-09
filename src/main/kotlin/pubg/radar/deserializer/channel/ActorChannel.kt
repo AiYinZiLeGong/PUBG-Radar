@@ -22,6 +22,8 @@ class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYP
     val airDropLocation = ConcurrentHashMap<NetworkGUID, Vector3>()
     val droppedItemLocation = ConcurrentHashMap<NetworkGUID, tuple2<Vector2, String>>()
     val corpseLocation = ConcurrentHashMap<NetworkGUID, Vector3>()
+    val actorHasWeapons=ConcurrentHashMap<NetworkGUID,IntArray>()
+    val weapons = ConcurrentHashMap<Int, Actor>()
     
     override fun onGameOver() {
       actors.clear()
@@ -29,6 +31,8 @@ class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYP
       airDropLocation.clear()
       droppedItemLocation.clear()
       corpseLocation.clear()
+      weapons.clear()
+      actorHasWeapons.clear()
     }
   }
   
@@ -161,6 +165,7 @@ class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYP
           if (client) {
             actors[netGUID] = this
             when (Type) {
+              Weapon -> weapons[netGUID.value] = this
               AirDrop -> airDropLocation[netGUID] = location
               DeathDropItemPackage -> corpseLocation[netGUID] = location
               else -> {

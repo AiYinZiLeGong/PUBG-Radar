@@ -88,7 +88,8 @@ object CMD {
       AirDrop.name to APawnCMD::process,
       PlayerState.name to PlayerStateCMD::process,
       Team.name to TeamCMD::process,
-      "DroppedItemInteractionComponent" to DroppedItemInteractionComponentCMD::process
+      "DroppedItemInteractionComponent" to DroppedItemInteractionComponentCMD::process,
+      WeaponProcessor.name to WeaponProcessorCMD::process
   )
 }
 
