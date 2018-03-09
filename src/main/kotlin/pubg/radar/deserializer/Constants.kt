@@ -8,7 +8,7 @@ const val MAX_BUNCH_HEADER_BITS = 64
 const val NAME_SIZE = 1024
 const val MAX_NETWORKED_HARDCODED_NAME = 410
 
-const val ROLE_MAX=4
+const val ROLE_MAX = 4
 
 const val CHTYPE_NONE = 0
 const val CHTYPE_CONTROL = 1
