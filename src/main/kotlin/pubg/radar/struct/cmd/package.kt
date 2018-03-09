@@ -74,6 +74,7 @@ object CMD {
   val processors = mapOf<String, cmdProcessor>(
       GameState.name to GameStateCMD::process,
       Other.name to APawnCMD::process,
+      DroppedItem.name to DroppedItemCMD::process,
       DroopedItemGroup.name to APawnCMD::process,
       Grenade.name to APawnCMD::process,
       TwoSeatBoat.name to APawnCMD::process,

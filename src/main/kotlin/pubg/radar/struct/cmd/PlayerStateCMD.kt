@@ -23,6 +23,8 @@ object PlayerStateCMD: GameListener {
     uniqueIds.clear()
     teamNumbers.clear()
     attacks.clear()
+    selfID = NetworkGUID(0)
+    selfStateID = NetworkGUID(0)
   }
   
   val playerNames = ConcurrentHashMap<NetworkGUID, String>()
@@ -31,6 +33,7 @@ object PlayerStateCMD: GameListener {
   val teamNumbers = ConcurrentHashMap<NetworkGUID, Int>()
   val attacks = ConcurrentLinkedQueue<Pair<NetworkGUID, NetworkGUID>>()//A -> B
   var selfID = NetworkGUID(0)
+  var selfStateID = NetworkGUID(0)
   
   fun process(actor: Actor, bunch: Bunch, repObj: NetGuidCacheObject?, waitingHandle: Int, data: HashMap<String, Any?>): Boolean {
     with(bunch) {
@@ -146,7 +149,7 @@ object PlayerStateCMD: GameListener {
         }
         39 -> {
           val TotalMovedDistanceMeter = propertyFloat()
-//          selfID = actor.netGUID//only self will get this update
+          selfStateID = actor.netGUID//only self will get this update
         }
         40 -> {
           val TotalGivenDamages = propertyFloat()

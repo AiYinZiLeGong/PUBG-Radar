@@ -44,6 +44,7 @@ import pubg.radar.struct.cmd.PlayerStateCMD.attacks
 import pubg.radar.struct.cmd.PlayerStateCMD.playerNames
 import pubg.radar.struct.cmd.PlayerStateCMD.playerNumKills
 import pubg.radar.struct.cmd.PlayerStateCMD.selfID
+import pubg.radar.struct.cmd.PlayerStateCMD.selfStateID
 import pubg.radar.struct.cmd.PlayerStateCMD.teamNumbers
 import pubg.radar.util.tuple4
 import wumo.pubg.struct.cmd.TeamCMD.team
@@ -246,22 +247,41 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       val iter = attackLineStartTime.iterator()
       while (iter.hasNext()) {
         val (A, B, st) = iter.next()
-        val actorAID = playerStateToActor[A]
-        val actorBID = playerStateToActor[B]
-        if (actorAID == null || actorBID == null) {
-          iter.remove()
-          continue
+        if (A == selfStateID || B == selfStateID) {
+          if (A != B) {
+            val otherGUID = playerStateToActor[if (A == selfStateID) B else A]
+            if (otherGUID == null) {
+              iter.remove()
+              continue
+            }
+            val other = actors[otherGUID]
+            if (other == null || currentTime - st > attackLineDuration) {
+              iter.remove()
+              continue
+            }
+            color = attackLineColor
+            val (xA, yA) = other.location
+            val (xB, yB) = selfCoords
+            line(xA, yA, xB, yB)
+          }
+        } else {
+          val actorAID = playerStateToActor[A]
+          val actorBID = playerStateToActor[B]
+          if (actorAID == null || actorBID == null) {
+            iter.remove()
+            continue
+          }
+          val actorA = actors[actorAID]
+          val actorB = actors[actorBID]
+          if (actorA == null || actorB == null || currentTime - st > attackLineDuration) {
+            iter.remove()
+            continue
+          }
+          color = attackLineColor
+          val (xA, yA) = actorA.location
+          val (xB, yB) = actorB.location
+          line(xA, yA, xB, yB)
         }
-        val actorA = actors[actorAID]
-        val actorB = actors[actorBID]
-        if (actorA == null || actorB == null || currentTime - st > attackLineDuration) {
-          iter.remove()
-          continue
-        }
-        color = attackLineColor
-        val (xA, yA) = actorA.location
-        val (xB, yB) = actorB.location
-        line(xA, yA, xB, yB)
       }
     }
   }
@@ -432,7 +452,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       if (equippedWeapons != null) {
         for (w in equippedWeapons) {
           val a = weapons[w] ?: continue
-          val result=a.archetype.pathName.split("_")
+          val result = a.archetype.pathName.split("_")
           weapon += result[2].substring(4) + "\n"
         }
       }
@@ -519,6 +539,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
     
     color = BLACK
     val (actor, x, y, dir) = actorInfo
+    if (actor?.netGUID == selfID) return
     circle(x, y, backgroundRadius, 10)
     
     val attach = actor?.attachChildren?.values?.firstOrNull()
@@ -541,7 +562,7 @@ class GLMap: InputAdapter(), ApplicationListener, GameListener {
       val health = actorHealth[actor.netGUID] ?: 100f
       val width = healthBarWidth * zoom
       val height = healthBarHeight * zoom
-      val y = y + backgroundRadius+height/2
+      val y = y + backgroundRadius + height / 2
 //      color = WHITE
 //      rectLine(x - width / 2, y, x + width / 2, y, height+50f*zoom)
       val healthWidth = (health / 100.0 * width).toFloat()

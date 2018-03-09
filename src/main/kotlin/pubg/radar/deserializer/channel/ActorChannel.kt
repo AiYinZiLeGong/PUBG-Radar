@@ -20,6 +20,7 @@ class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYP
     val actors = ConcurrentHashMap<NetworkGUID, Actor>()
     val visualActors = ConcurrentHashMap<NetworkGUID, Actor>()
     val airDropLocation = ConcurrentHashMap<NetworkGUID, Vector3>()
+    val droppedItemToItem = ConcurrentHashMap<NetworkGUID, NetworkGUID>()
     val droppedItemGroup = ConcurrentHashMap<NetworkGUID, ArrayList<NetworkGUID>>()
     val droppedItemCompToItem = ConcurrentHashMap<NetworkGUID, NetworkGUID>()
     val droppedItemLocation = ConcurrentHashMap<NetworkGUID, tuple2<Vector2, String>>()
@@ -31,6 +32,7 @@ class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYP
       actors.clear()
       visualActors.clear()
       airDropLocation.clear()
+      droppedItemToItem.clear()
       droppedItemGroup.clear()
       droppedItemCompToItem.clear()
       droppedItemLocation.clear()
@@ -67,6 +69,9 @@ class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYP
       if (actor == null) return
     }
     val actor = actor!!
+    if (actor.Type == DroppedItem && bunch.bitsLeft() == 0)
+      droppedItemLocation.remove(droppedItemToItem[actor.netGUID] ?: return)
+  
     while (bunch.notEnd()) {
       //header
       val bHasRepLayout = bunch.readBit()
