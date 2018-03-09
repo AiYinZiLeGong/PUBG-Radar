@@ -20,6 +20,8 @@ class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYP
     val actors = ConcurrentHashMap<NetworkGUID, Actor>()
     val visualActors = ConcurrentHashMap<NetworkGUID, Actor>()
     val airDropLocation = ConcurrentHashMap<NetworkGUID, Vector3>()
+    val droppedItemGroup = ConcurrentHashMap<NetworkGUID, ArrayList<NetworkGUID>>()
+    val droppedItemCompToItem = ConcurrentHashMap<NetworkGUID, NetworkGUID>()
     val droppedItemLocation = ConcurrentHashMap<NetworkGUID, tuple2<Vector2, String>>()
     val corpseLocation = ConcurrentHashMap<NetworkGUID, Vector3>()
     val actorHasWeapons=ConcurrentHashMap<NetworkGUID,IntArray>()
@@ -29,6 +31,8 @@ class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYP
       actors.clear()
       visualActors.clear()
       airDropLocation.clear()
+      droppedItemGroup.clear()
+      droppedItemCompToItem.clear()
       droppedItemLocation.clear()
       corpseLocation.clear()
       weapons.clear()
@@ -67,22 +71,22 @@ class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYP
       //header
       val bHasRepLayout = bunch.readBit()
       val bIsActor = bunch.readBit()
-      var repObj: String?
+      var repObj: NetGuidCacheObject?
       if (bIsActor) {
-        repObj = actor.Type.name
+        repObj = NetGuidCacheObject(actor.Type.name, actor.netGUID)
       } else {
         val (netguid, _subobj) = bunch.readObject()//SubObject, SubObjectNetGUID
         if (!client) {
           if (_subobj == null)// The server should never need to create sub objects
             continue
-          repObj = _subobj.pathName
+          repObj = _subobj
           bugln { "$actor hasSubObj $repObj" }
         } else {
           val bStablyNamed = bunch.readBit()
           if (bStablyNamed) {// If this is a stably named sub-object, we shouldn't need to create it
             if (_subobj == null)
               continue
-            repObj = _subobj.pathName
+            repObj = _subobj
           } else {
             val (classGUID, classObj) = bunch.readObject()//SubOjbectClass,SubObjectClassNetGUID
             if (classObj != null && (actor.Type == DroopedItemGroup || actor.Type == DroppedItem)) {
@@ -95,7 +99,7 @@ class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYP
               continue
             val subobj = NetGuidCacheObject(classObj.pathName, classGUID)
             guidCache.registerNetGUID_Client(netguid, subobj)
-            repObj = subobj.pathName
+            repObj = guidCache.getObjectFromNetGUID(netguid)
           }
           
         }
@@ -114,9 +118,11 @@ class ActorChannel(ChIndex: Int, client: Boolean = true): Channel(ChIndex, CHTYP
         if (bHasRepLayout) {
           if (!client)// Server shouldn't receive properties.
             return
+          if (actor.Type == DroopedItemGroup && repObj?.pathName == "RootComponent")
+            repObj = NetGuidCacheObject("DroppedItemGroupRootComponent", repObj.outerGUID)
           repl_layout_bunch(outPayload, repObj, actor)
         }
-        if (!client && repObj == "CharMoveComp") {
+        if (!client && repObj?.pathName == "CharMoveComp") {
           selfID = actor.netGUID
           while (outPayload.notEnd())
             charmovecomp(outPayload)

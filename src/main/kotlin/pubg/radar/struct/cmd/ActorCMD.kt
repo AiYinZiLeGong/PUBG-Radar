@@ -43,7 +43,7 @@ object ActorCMD: GameListener {
   val playerStateToActor = ConcurrentHashMap<NetworkGUID, NetworkGUID>()
   val actorHealth = ConcurrentHashMap<NetworkGUID, Float>()
   
-  fun process(actor: Actor, bunch: Bunch, waitingHandle: Int, data: HashMap<String, Any?>): Boolean {
+  fun process(actor: Actor, bunch: Bunch, repObj: NetGuidCacheObject?, waitingHandle: Int, data: HashMap<String, Any?>): Boolean {
     with(bunch) {
       when (waitingHandle) {
         1 -> if (readBit()) {//bHidden

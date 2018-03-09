@@ -55,7 +55,7 @@ object GameStateCMD: GameListener {
   var NumAlivePlayers = 0
   var NumAliveTeams = 0
   
-  fun process(actor: Actor, bunch: Bunch, waitingHandle: Int, data: HashMap<String, Any?>): Boolean {
+  fun process(actor: Actor, bunch: Bunch, repObj: NetGuidCacheObject?, waitingHandle: Int, data: HashMap<String, Any?>): Boolean {
     with(bunch) {
       when (waitingHandle) {
         16 -> {

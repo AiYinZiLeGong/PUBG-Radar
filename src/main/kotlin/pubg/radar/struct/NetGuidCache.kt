@@ -2,7 +2,6 @@ package pubg.radar.struct
 
 import pubg.radar.*
 import pubg.radar.deserializer.channel.ActorChannel.Companion.actors
-import pubg.radar.struct.NetGUIDCache.Companion.guidCache
 
 class NetGuidCacheObject(
     val pathName: String,
@@ -12,7 +11,7 @@ class NetGuidCacheObject(
     val IgnoreWhenMissing: Boolean = false) {
   var holdObj: Any? = null
   override fun toString(): String {
-    return "{path='$pathName', outer[$outerGUID]=${guidCache.getObjectFromNetGUID(outerGUID)}}"
+    return "{path='$pathName', outer[$outerGUID]}"
   }
 }
 
@@ -87,7 +86,11 @@ class NetGUIDCache {
         bugln { "Reassigning NetGUID $netGUID" }
       objectLoop.remove(netGUID)
     }
-    val cacheObject = NetGuidCacheObject("", netGUID)
+    val cacheObject = when (obj) {
+      is NetGuidCacheObject -> NetGuidCacheObject(obj.pathName, netGUID)
+      is Actor -> NetGuidCacheObject(obj.archetype.pathName, netGUID)
+      else -> NetGuidCacheObject("", netGUID)
+    }
     objectLoop[netGUID] = cacheObject
     debugln { "register obj:$obj" }
   }

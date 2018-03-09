@@ -7,7 +7,7 @@ import pubg.radar.struct.Archetype.Plane
 import wumo.pubg.struct.cmd.TeamCMD
 import java.util.*
 
-typealias cmdProcessor = (Actor, Bunch, Int, HashMap<String, Any?>) -> Boolean
+typealias cmdProcessor = (Actor, Bunch, NetGuidCacheObject?, Int, HashMap<String, Any?>) -> Boolean
 
 enum class REPCMD {
   DynamicArray,  //0 Dynamic array
@@ -89,6 +89,7 @@ object CMD {
       PlayerState.name to PlayerStateCMD::process,
       Team.name to TeamCMD::process,
       "DroppedItemInteractionComponent" to DroppedItemInteractionComponentCMD::process,
+      "DroppedItemGroupRootComponent" to DroppedItemGroupRootComponentCMD::process,
       WeaponProcessor.name to WeaponProcessorCMD::process
   )
 }

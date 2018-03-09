@@ -17,7 +17,7 @@ object TeamCMD: GameListener {
     team.clear()
   }
   
-  fun process(actor: Actor, bunch: Bunch, waitingHandle: Int, data: HashMap<String, Any?>): Boolean {
+  fun process(actor: Actor, bunch: Bunch, repObj: NetGuidCacheObject?, waitingHandle: Int, data: HashMap<String, Any?>): Boolean {
     with(bunch) {
       //      println("${actor.netGUID} $waitingHandle")
       when (waitingHandle) {
