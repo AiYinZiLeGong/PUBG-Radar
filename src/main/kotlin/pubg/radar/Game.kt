@@ -37,7 +37,13 @@ fun gameOver() {
   gameListeners.forEach { it.onGameOver() }
 }
 
+lateinit var Args: Array<String>
 fun main(args: Array<String>) {
+  Args=args
+  if (Args.size >= 1) {
+    println("Loading PCAP File ${Args[0]}")
+    Sniffer.sniffLocationOffline()
+  }
   Sniffer.sniffLocationOnline()
   val ui = GLMap()
   ui.show()
