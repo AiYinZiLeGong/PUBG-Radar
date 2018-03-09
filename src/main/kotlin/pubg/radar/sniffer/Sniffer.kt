@@ -182,7 +182,7 @@ class Sniffer {
     fun sniffLocationOnline() {
       val handle = nif.openLive(snapLen, mode, timeout)
       val filter = when (sniffOption) {
-        PortFilter -> "udp portrange 7000-7999"
+        PortFilter -> "udp portrange 3000-7999"
         PPTPFilter -> "ip[9]=47"
       }
       handle.setFilter(filter, OPTIMIZE)
@@ -194,9 +194,9 @@ class Sniffer {
             val udp = udp_payload(packet) ?: return@loop
             val raw = udp.payload.rawData
             if (ip.header.srcAddr == localAddr) {
-              if (udp.header.dstPort.valueAsInt() in 7000..7999)
+              if (udp.header.dstPort.valueAsInt() in 3000..7999)
                 proc_raw_packet(raw, false)
-            } else if (udp.header.srcPort.valueAsInt() in 7000..7999)
+            } else if (udp.header.srcPort.valueAsInt() in 3000..7999)
               proc_raw_packet(raw, true)
           } catch (e: Exception) {
           }
@@ -206,7 +206,7 @@ class Sniffer {
     
     fun sniffLocationOffline(): Thread {
       return thread(isDaemon = true) {
-        val files = arrayOf("d:\\new05.pcap")
+        val files = arrayOf(Args[0])
         for (file in files) {
           val handle = Pcaps.openOffline(file)
           
@@ -217,9 +217,9 @@ class Sniffer {
               val udp = udp_payload(packet) ?: continue
               val raw = udp.payload.rawData
               if (ip.header.srcAddr == localAddr) {
-                if (udp.header.dstPort.valueAsInt() in 7000..7999)
+                if (udp.header.dstPort.valueAsInt() in 3000..7999)
                   proc_raw_packet(raw, false)
-              } else if (udp.header.srcPort.valueAsInt() in 7000..7999)
+              } else if (udp.header.srcPort.valueAsInt() in 3000..7999)
                 proc_raw_packet(raw,true)
             } catch (e: Exception) {
             }
