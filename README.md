@@ -1,20 +1,33 @@
-# PUBG-Radar
-PUBG-Radar by sniffering udp packet
+# Radar
+![Imgur](https://i.imgur.com/9yh84NO.png)
 
-Written in Kotlin
+![Vehicle](https://github.com/XvenDeR/Memes/blob/master/src/main/resources/images/vehicle.png?raw=true)
+![Buggy](https://github.com/XvenDeR/Memes/blob/master/src/main/resources/images/buggy.png?raw=true)
+![Enemy](https://github.com/XvenDeR/Memes/blob/master/src/main/resources/images/arrow.png?raw=true)
+![Player](https://github.com/XvenDeR/Memes/blob/master/src/main/resources/images/player.png?raw=true)
+![Nade](https://github.com/XvenDeR/Memes/blob/master/src/main/resources/images/grenade.png?raw=true)
+![Jetski](https://github.com/XvenDeR/Memes/blob/master/src/main/resources/images/jetski.png?raw=true)
+![Parachute](https://github.com/XvenDeR/Memes/blob/master/src/main/resources/images/parachute64.png?raw=true)
 
-# Changes
-* Get self player's location by parsing `CharMoveComp` RPC. So the player's direction is corrected now. 
-* Get item's relative locaiton by `DroppedItemInteractionComponent`. So the item location is corrected now.
-* Change `readRotator()` to `readRotationShort()` fixes empty player state.
-* `DroppedItem` is shown.
-* Fully parse `ATslCharacter`. So player health is shown.
-* Correct player color when driving.
-* `Equipped weapons` are shown.
-* Clear `DroppedItem` and `DroppedItemGroup` when `picking up`.
+#### Item Filter:
+* Home -> Show / Hide Compass
+* Num 0 -> Filter Throwables
+* Num 1 -> Filter Attachments
+* Num 2 -> Filter Scopes
+* Num 3 -> Filter Ammo
+* Num 4 -> Filter Weapons
+* Num 5 -> Filter Level 2 Gear          
+* Num 6 -> Filter Meds
 
-# Build
-Using [maven](https://maven.apache.org/)
+#### Icon Toggles
+* F5 -> Toggle Vehicle Names
+* F6 -> Toggle Vehicles
+* F11 -> Toggle View Line
+* Insert -> Grid
 
-# Note
-You need to modify the code before playing game, or you will be banned by BE.
+#### Zooms:
+* Num 7 -> Scouting
+* Num 8 -> Scout/Loot
+* Num 9 -> Looting
+* F9 ->  Camera Zoom ++
+* F10 -> Camera Zoom --
